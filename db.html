@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面包机软件代码设计4</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+        }
+        nav {
+            background-color: #444;
+            overflow: hidden;
+        }
+        nav a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+        nav a:hover {
+            background-color: #575757;
+            color: black;
+        }
+        .content {
+            padding: 20px;
+        }
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>面包机软件代码设计4</h1>
+</header>
+
+<nav>
+    <a href="">首页</a>
+    <a href="">关于我们</a>
+    <a href="">服务</a>
+    <a href="">联系我们</a>
+</nav>
+
+<div class="content">
+ case STATE_COOLING:
+            // 自然冷却
+            if (ctrl->timer >= 600) {  // 10分钟
+                ctrl->currentState = STATE_DONE;
+            }
+            break;
+            
+        case STATE_DONE:
+            // 播放完成提示音
+            Buzzer_Beep(3, 500);
+            break;
+    }
+    
+    if (ctrl->currentState != STATE_IDLE && 
+        ctrl->currentState != STATE_DONE) {
+        ctrl->timer++;
+    }
+}
+用户界面层实现
+简单的LCD显示控制
+c
+#include <stdio h>
+#include <string h>
+ 
+// 假设的LCD接口函数
+void LCD_Clear(void);
+void LCD_Print(const char* str);
+void LCD_SetCursor(uint8_t row, uint8_t col);
+ 
+void Display_Update(BreadMachineControl* ctrl) {
+    char buffer[16];
+    LCD_Clear();
+    
+    switch (ctrl->currentState) {
+        case STATE_IDLE:
+            LCD_Print("  Bread Maker");
+            LCD_SetCursor(1, 0);
+            LCD_Print("  Ready");
+            break;
+            
+        case STATE_PREHEAT:
+            LCD_Print("Preheating   ");
+            LCD_SetCursor(1, 0);
+            sprintf(buffer, "%d %dC", ctrl->currentTemp/10, ctrl->currentTemp%10);
+            LCD_Print(buffer);
+            break;
+            
+        case STATE_KNEADING:
+            LCD_Print("Kneading   ");
+            LCD_SetCursor(1, 0);
+            sprintf(buffer, "%d:%02d", ctrl->timer/60, ctrl->timer%60);
+            LCD_Print(buffer);
+            break;
+            
+        // 其他状态类似   
+        default:
+            LCD_Print("Error State");
+            break;
+    }
+}
+主控制循环
+c
+#include <avr/io h>
+#include <avr/interrupt h>
+ 
+BreadMachineControl breadMachine;
+ 
+int main(void) {
+    // 初始化硬件
+    DS18B20_Init();
+    Heater_Init();
+    LCD_Init();
+    Button_Init();  // 假设的按钮初始化
+    
+    // 设置初始状态
+    breadMachine currentState = STATE_IDLE;
+    breadMachine timer = 0;
+    
+    sei();  // 启用全局中断
+    
+    while (1) {
+        // 处理用户输入
+        if (Button_IsPressed(BUTTON_START)) {
+            breadMachine currentState = STATE_PREHEAT;
+        }
+        
+        // 更新面包机状态
+        BreadMachine_Update(&breadMachine);
+        
+        // 更新显示
+        Display_Update(&breadMachine);
+        
+        // 其他任务   
+        _delay_ms(100);  // 简单延时（实际应使用定时器）
+    }
+    
+    return 0;
+}
+安全考虑
+温度保护机制
+c
+#define MAX_SAFE_TEMP 2500  // 250 0°C
+ 
+void Safety_Check(BreadMachineControl* ctrl) {
+    static uint8_t overheatCount = 0;
+    int16_t currentTemp = DS18B20_ReadTemperature();
+    
+    if (currentTemp > MAX_SAFE_TEMP) {
+        overheatCount++;
+        if (overheatCount >= 3) {  // 连续3次超温
+            // 紧急停止
+            Heater_SetPower(0);
+            Motor_Stop();
+            ctrl->currentState = STATE_IDLE;
+            // 触发警报
+            Buzzer_Beep(5, 200);
+        }
+    } else {
+        overheatCount = 0;
+    }
+}
+
+
+</p>
+  
+</div>
+
+<footer>
+    <p>版权所有 &copy; 2025 </p>
+<style>
+    #updateTime {
+      font-family: Arial, sans-serif;
+      color: #333;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+ 
+
+ <style>
+    #updateTime {
+      font-family: Arial, sans-serif;
+      color: #333;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+ <style>
+    #updateTime {
+      font-family: Arial, sans-serif;
+      color: #333;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="updateTime">最后更新时间：加载中...</div>
+
+  <script>
+    function updateDisplay() {
+      const now = new Date();
+      const timeStr = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      document.getElementById('updateTime').innerText = 
+        `最后更新时间：${timeStr}`;
+    }
+    
+    // 页面加载时立即执行
+    updateDisplay();
+    // 后续每分钟更新一次（可根据需要调整间隔）
+    setInterval(updateDisplay, 60000);
+  </script>
+
+</footer>
+<div style="display:none"><script charset="UTF-8" id="LA_COLLECT" src="//sdk.51.la/js-sdk-pro.min.js"></script>
+<script>LA.init({id:"Je6xEfFUsfQ6cplX",ck:"Je6xEfFUsfQ6cplX"})</script></div>
+</body>
+</html>
